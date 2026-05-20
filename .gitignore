@@ -1,0 +1,10 @@
+# Ignore the Python virtual environment and tools in the parent directory
+../env/
+../bin/
+../out/
+../.vs/
+../workspace/
+
+# Ignore local Visual Studio compiler artifacts if they appear inside this folder
+out/
+.vs/
