@@ -81,6 +81,8 @@ Run the project directly through Visual Studio (F5) or execute the compiled bina
 
 Enter the filename of your video when prompted (e.g., test.mp4).
 
-Paste or input your clean, custom text script baseline.
+Choose whether to input your own subtitles or not.
+
+If chosen to enter your own subtitles, paste or input your clean, custom text script baseline.
 
 The application will sequentially run audio extraction, spin up the background AI script, generate the precision .srt timestamp file, and instantly boot up an integrated media player with perfectly frame-locked subtitles.
