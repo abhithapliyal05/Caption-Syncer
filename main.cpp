@@ -9,7 +9,7 @@
 using namespace std;
 
 int main() {
-    // 1. Setup Environment Paths (Updated for clean structure)
+    // 1. Setup Environment Paths
     const string BASE_DIR = "C:\\Projects\\";
 
     string ffmpegPath = BASE_DIR + "bin\\ffmpeg.exe";
@@ -23,21 +23,35 @@ int main() {
     cin >> videoName;
     cin.ignore();
 
-    // 3. Get Subtitle Script Input Directly
-    cout << "\nPaste or type the exact script/subtitles here.\n";
-    cout << "(When finished, press Enter on an empty line to start processing):\n";
-    cout << "----------------------------------------------------------------\n";
+    // 3. Prompt for Script or Raw Extraction
+    cout << "\nDo you want to provide a custom text script for precision alignment? (y/n): ";
+    char scriptChoice;
+    cin >> scriptChoice;
+    cin.ignore();
 
+    string modeFlag = "raw";
     string cleanText = "";
-    string line;
-    while (getline(cin, line)) {
-        if (line.empty()) break;
-        cleanText += line + " ";
-    }
 
-    if (cleanText.empty()) {
-        cout << "ERROR: You didn't enter any subtitle text!" << endl;
-        return 1;
+    if (scriptChoice == 'y' || scriptChoice == 'Y') {
+        modeFlag = "align";
+
+        cout << "\nPaste or type the exact script/subtitles here.\n";
+        cout << "(When finished, press Enter on an empty line to start processing):\n";
+        cout << "----------------------------------------------------------------\n";
+
+        string line;
+        while (getline(cin, line)) {
+            if (line.empty()) break;
+            cleanText += line + " ";
+        }
+
+        if (cleanText.empty()) {
+            cout << "ERROR: You selected alignment but didn't enter any subtitle text!" << endl;
+            return 1;
+        }
+    }
+    else {
+        cout << "\nSkipping custom script. Proceeding with raw AI transcription...\n";
     }
 
     // 4. Update operational target files to route into the \workspace\ folder
@@ -51,10 +65,12 @@ int main() {
     remove(tempTxt.c_str());
     remove(srtOutput.c_str());
 
-    // Write the user's pasted script to a temp file for Python to read
-    ofstream scriptOut(tempTxt);
-    scriptOut << cleanText;
-    scriptOut.close();
+    // Write the user's pasted script to a temp file ONLY if alignment mode is active
+    if (modeFlag == "align") {
+        ofstream scriptOut(tempTxt);
+        scriptOut << cleanText;
+        scriptOut.close();
+    }
 
     // STAGE 1: Extract Audio
     cout << "\n[1/2] Extracting audio track from video..." << endl;
@@ -66,9 +82,9 @@ int main() {
         return 1;
     }
 
-    // STAGE 2: Run WhisperX Phoneme Forced Alignment
-    cout << "[2/2] Launching WhisperX Forced Alignment Pipeline..." << endl;
-    string pythonCmd = sandboxPython + " \"" + alignScript + "\" \"" + tempWav + "\" \"" + tempTxt + "\" \"" + srtOutput + "\"";
+    // STAGE 2: Run WhisperX Pipeline with Mode Flags
+    cout << "[2/2] Launching WhisperX Pipeline..." << endl;
+    string pythonCmd = sandboxPython + " \"" + alignScript + "\" \"" + tempWav + "\" \"" + tempTxt + "\" \"" + srtOutput + "\" --mode " + modeFlag;
 
     int alignResult = system(pythonCmd.c_str());
 
@@ -80,8 +96,7 @@ int main() {
         string workspaceDir = "C:\\Projects\\workspace";
         string localSrt = videoName + "_temp.wav.srt";
 
-        // Use standard Windows 'cd /d' to shift directories inside the execution string.
-        // By chaining commands with '&&', FFplay runs directly inside the workspace folder!
+        // Chaining directory shifts and execution flags to render cleanly inside the workspace
         string videoCmd = "cd /d \"" + workspaceDir + "\" && \"" + ffplayPath +
             "\" -i \"" + videoName +
             "\" -vf \"subtitles='" + localSrt + "':force_style='Alignment=2,FontSize=20'\" " +
